@@ -1,0 +1,58 @@
+/* Menu (StatusBarController) */
+"menu.version" = "Clipkun %@";
+"menu.settings" = "Settings…";
+"menu.clear_history" = "Clear All History";
+"menu.check_update" = "Check for Updates…";
+"menu.install_update" = "Install Update %@…";
+"menu.quit" = "Quit Clipkun";
+"menu_bar.local" = "Local";
+
+/* Settings window */
+"settings.window.title" = "Clipkun Settings";
+"tab.general" = "General";
+"tab.history" = "Hotkey & Retention";
+
+"button.cancel" = "Cancel";
+
+/* General tab */
+"settings.launch_at_login" = "Launch at login";
+"settings.version" = "Version %@";
+
+/* History tab */
+"settings.hotkey" = "Popup hotkey";
+"settings.retention" = "Retention period";
+"settings.max_items" = "Max items";
+"settings.history.description" = "Press the hotkey to show clipboard history at the cursor. History older than the retention period, and items beyond the max count, are deleted automatically.";
+"unit.hours" = "hours";
+"unit.days" = "days";
+"hotkey.recording" = "Press a key…";
+
+/* Popup */
+"popup.empty" = "No history";
+"popup.delete" = "Delete this item";
+
+/* Update flow */
+"update.latest" = "Clipkun %@ is up to date.";
+"update.check_failed" = "Failed to check for updates: %@";
+"update.available.title" = "Update %@ is available";
+"update.available.body" = "Current version is %@. Install now?";
+"update.button.update" = "Update";
+"update.button.open_release" = "Open Release Page";
+"update.failed" = "Update failed: %@";
+
+/* Login item */
+"login_item.requires_approval" = "Login items are disabled. Enable Clipkun in System Settings > General > Login Items.";
+
+/* Alerts */
+"alert.error.title" = "Error";
+
+/* Update errors */
+"error.fetch_release_http" = "Failed to fetch release info (HTTP %d).";
+"error.parse_release" = "Failed to parse release info.";
+"error.no_zip_asset" = "No .zip asset found in the release.";
+"error.download_http" = "Download failed (HTTP %d).";
+"error.not_writable" = "Cannot write to the app bundle: %@";
+"error.no_zip" = "Downloaded archive not found.";
+"error.command_failed" = "Command failed: %@";
+"error.no_app_in_archive" = "No .app found in the archive.";
+"error.bundle_id_mismatch" = "Downloaded app's bundle ID does not match.";

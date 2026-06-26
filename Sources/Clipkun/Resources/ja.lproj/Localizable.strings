@@ -1,0 +1,58 @@
+/* Menu (StatusBarController) */
+"menu.version" = "Clipkun %@";
+"menu.settings" = "設定…";
+"menu.clear_history" = "履歴をすべて削除";
+"menu.check_update" = "アップデートを確認…";
+"menu.install_update" = "アップデート %@ をインストール…";
+"menu.quit" = "Clipkun を終了";
+"menu_bar.local" = "ローカル";
+
+/* Settings window */
+"settings.window.title" = "Clipkun 設定";
+"tab.general" = "一般";
+"tab.history" = "ホットキー・保持期間";
+
+"button.cancel" = "キャンセル";
+
+/* General tab */
+"settings.launch_at_login" = "ログイン時に起動";
+"settings.version" = "バージョン %@";
+
+/* History tab */
+"settings.hotkey" = "ポップアップのホットキー";
+"settings.retention" = "保持期間";
+"settings.max_items" = "最大件数";
+"settings.history.description" = "ホットキーを押すと、カーソル位置にクリップボード履歴を表示します。保持期間を過ぎた履歴と、最大件数を超えた古い履歴は自動的に削除されます。";
+"unit.hours" = "時間";
+"unit.days" = "日";
+"hotkey.recording" = "キーを押してください…";
+
+/* Popup */
+"popup.empty" = "履歴がありません";
+"popup.delete" = "この履歴を削除";
+
+/* Update flow */
+"update.latest" = "Clipkun %@ は最新です。";
+"update.check_failed" = "アップデートの確認に失敗しました: %@";
+"update.available.title" = "アップデート %@ が利用可能です";
+"update.available.body" = "現在のバージョンは %@ です。今すぐインストールしますか?";
+"update.button.update" = "アップデート";
+"update.button.open_release" = "リリースページを開く";
+"update.failed" = "アップデートに失敗しました: %@";
+
+/* Login item */
+"login_item.requires_approval" = "ログイン項目が無効になっています。システム設定 > 一般 > ログイン項目 で Clipkun を有効にしてください。";
+
+/* Alerts */
+"alert.error.title" = "エラー";
+
+/* Update errors */
+"error.fetch_release_http" = "リリース情報の取得に失敗しました (HTTP %d)。";
+"error.parse_release" = "リリース情報の解析に失敗しました。";
+"error.no_zip_asset" = "リリースに .zip アセットが見つかりません。";
+"error.download_http" = "ダウンロードに失敗しました (HTTP %d)。";
+"error.not_writable" = "アプリバンドルに書き込めません: %@";
+"error.no_zip" = "ダウンロードしたアーカイブが見つかりません。";
+"error.command_failed" = "コマンドが失敗しました: %@";
+"error.no_app_in_archive" = "アーカイブ内に .app が見つかりません。";
+"error.bundle_id_mismatch" = "ダウンロードしたアプリのバンドルIDが一致しません。";
