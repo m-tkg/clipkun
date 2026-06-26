@@ -40,6 +40,12 @@ struct ClipboardWriter {
     /// 実際のファイル読み取りは貼り付け側（Finder 等、自分の権限を持つ）に委ねる。
     /// NSFilenamesPboardType 等の旧フレーバーはシステムが自動派生する。
     private func writeFileURLs(_ urls: [URL]) -> Bool {
+        // 保護フォルダ（~/Downloads・~/Desktop・~/Documents 等）のファイルは、アプリに
+        // アクセス権が無いと pasteboard 書き込み時に file-url が黙って剥がされる。
+        // ここで実際にファイルへアクセスして TCC「ファイルとフォルダ」許可ダイアログを誘発し、
+        // 許可されればアクセス権を得てから URL を書き込む（whisperkun がマイクで権限を得るのと同じ発想）。
+        urls.forEach(triggerAccess)
+
         let items = urls.map { url -> NSPasteboardItem in
             let item = NSPasteboardItem()
             item.setString(url.absoluteString, forType: .fileURL)
@@ -47,5 +53,17 @@ struct ClipboardWriter {
         }
         pasteboard.clearContents()
         return pasteboard.writeObjects(items)
+    }
+
+    /// ファイル/フォルダへ軽くアクセスして TCC 許可ダイアログを誘発する（許可済みなら無害）。
+    private func triggerAccess(_ url: URL) {
+        let fm = FileManager.default
+        var isDir: ObjCBool = false
+        guard fm.fileExists(atPath: url.path, isDirectory: &isDir) else { return }
+        if isDir.boolValue {
+            _ = try? fm.contentsOfDirectory(atPath: url.path)
+        } else if let handle = try? FileHandle(forReadingFrom: url) {
+            try? handle.close()
+        }
     }
 }
