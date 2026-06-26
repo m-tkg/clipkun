@@ -1,5 +1,6 @@
 import AppKit
 import CryptoKit
+import UniformTypeIdentifiers
 import ClipkunCore
 
 /// `NSPasteboard` から取り込んだ1件分の生データ。
@@ -32,8 +33,8 @@ struct CapturedContent {
         if let urls = fileURLs(from: pasteboard) {
             return fromFileURLs(urls)
         }
-        if let image = imageData(from: pasteboard) {
-            return fromImage(image)
+        if let image = imageData(from: pasteboard), let content = fromImage(image) {
+            return content
         }
         if let text = pasteboard.string(forType: .string), !text.isEmpty {
             return fromText(text)
@@ -51,9 +52,12 @@ struct CapturedContent {
     }
 
     private static func imageData(from pasteboard: NSPasteboard) -> NSImage? {
-        guard let types = pasteboard.types else { return nil }
-        // PNG/TIFF が載っているときだけ画像とみなす（テキストだけのときに誤検出しない）。
-        guard types.contains(.png) || types.contains(.tiff) else { return nil }
+        // public.image に準拠するフレーバー（png/tiff/jpeg/gif/bmp/heic 等）があるときだけ
+        // 画像とみなす。特定型に限定すると、別形式しか載せないアプリの画像を取りこぼすため
+        // UTType.image で広く判定する（テキストのみのときは false なので誤検出しない）。
+        guard pasteboard.canReadItem(withDataConformingToTypes: [UTType.image.identifier]) else {
+            return nil
+        }
         return NSImage(pasteboard: pasteboard)
     }
 
@@ -88,8 +92,10 @@ struct CapturedContent {
         )
     }
 
-    private static func fromImage(_ image: NSImage) -> CapturedContent {
-        let png = pngData(from: image) ?? Data()
+    private static func fromImage(_ image: NSImage) -> CapturedContent? {
+        // PNG 化できない画像（PDF ベース等）は保存も書き戻しもできないため取り込まない
+        // （壊れた履歴項目を作らない）。
+        guard let png = pngData(from: image), !png.isEmpty else { return nil }
         let hash = sha256Hex(png)
         let pixelSize = pixelSize(of: image)
         let preview = "\(Int(pixelSize.width))×\(Int(pixelSize.height))"

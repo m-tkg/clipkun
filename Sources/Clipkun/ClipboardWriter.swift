@@ -19,8 +19,12 @@ struct ClipboardWriter {
             guard let text = store.fullText(for: item) else { return false }
             return pasteboard.setString(text, forType: .string)
         case .image:
-            guard let data = store.imageData(for: item) else { return false }
-            return pasteboard.setData(data, forType: .png)
+            // NSImage として書き込むと TIFF など各種フレーバーが用意され、貼り付け先アプリの
+            // 期待する型（PNG だけを読めない古いアプリ等）でも貼り付けられる。
+            guard let data = store.imageData(for: item), let image = NSImage(data: data) else {
+                return false
+            }
+            return pasteboard.writeObjects([image])
         case .fileURLs:
             guard let urls = store.fileURLs(for: item), !urls.isEmpty else { return false }
             return pasteboard.writeObjects(urls as [NSURL])
