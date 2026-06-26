@@ -46,9 +46,7 @@ final class PopupPanelController {
         // 再表示時に確実に最新の一覧を描画するため、ホスティングビューを作り直す。
         // （orderOut で隠した NSHostingView は再表示時に viewModel の変更を取りこぼし、
         //   前回のスナップショットを表示することがあるため。）
-        let hosting = NSHostingView(rootView: PopupView(viewModel: viewModel))
-        hosting.autoresizingMask = [.width, .height]
-        panel.contentView = hosting
+        rebuildContent(in: panel)
 
         let size = panelSize(for: viewModel.items.count)
         panel.setContentSize(size)
@@ -56,6 +54,13 @@ final class PopupPanelController {
 
         installMonitors()
         panel.makeKeyAndOrderFront(nil)
+    }
+
+    /// パネルのホスティングビューを作り直して、現在の `viewModel` を確実に描画させる。
+    private func rebuildContent(in panel: PopupPanel) {
+        let hosting = NSHostingView(rootView: PopupView(viewModel: viewModel))
+        hosting.autoresizingMask = [.width, .height]
+        panel.contentView = hosting
     }
 
     private func hide() {
@@ -119,12 +124,12 @@ final class PopupPanelController {
             return
         }
         viewModel.selectedIndex = min(viewModel.selectedIndex, viewModel.items.count - 1)
-        let size = panelSize(for: viewModel.items.count)
-        if let panel {
-            let topLeft = NSPoint(x: panel.frame.minX, y: panel.frame.maxY)
-            panel.setContentSize(size)
-            panel.setFrameTopLeftPoint(topLeft)
-        }
+        guard let panel else { return }
+        // 一覧を確実に再描画するためホスティングビューを作り直し、上端を固定したままサイズ調整する。
+        let topLeft = NSPoint(x: panel.frame.minX, y: panel.frame.maxY)
+        rebuildContent(in: panel)
+        panel.setContentSize(panelSize(for: viewModel.items.count))
+        panel.setFrameTopLeftPoint(topLeft)
     }
 
     // MARK: - 入力監視
