@@ -168,3 +168,12 @@ GitHub Releases から最新版を取得して自己更新する。
   `writeObjects` し TIFF を含む各種フレーバーを提供。PNG 化できない画像（PDF ベース等）はスキップ。
 - **永続化**: `~/Library/Application Support/Clipkun/` に `index.json`（メタデータ）＋
   `blobs/`（画像PNG・ファイルパス群・長文）＋ `thumbnails/`。dedup は `contentHash`（SHA-256）。
+
+## Kuntraykun 連携（実装済み）
+
+本アプリは kuntraykun（`com.mtkg.kuntraykun`）にメニューバーアイコンを集約させる連携に対応している。
+- 実装: `Sources/Clipkun/KuntraykunBridge.swift`（分散通知の送受信・アイコン表示制御）、
+  `StatusBarController.swift`（`setManagedHidden(_:)` / `popUpMenu(at:)` と `menu` のプロパティ化）、
+  `AppDelegate.swift`（`bridge.start()` の配線）。
+- 仕様: kuntraykun リポジトリ `docs/kun-integration-protocol.md`、共通方針は `CLAUDE_base.md`「Kuntraykun 連携」。
+- 管理対象フラグは `UserDefaults`（キー `KuntraykunManaged`）に永続化する。
