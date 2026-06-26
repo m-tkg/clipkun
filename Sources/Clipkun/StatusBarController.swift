@@ -5,6 +5,8 @@ import AppKit
 @MainActor
 final class StatusBarController: NSObject {
     private let statusItem: NSStatusItem
+    /// ステータスメニュー本体。kuntraykun 連携時はこのメニューを指定座標へ popUp する。
+    private let menu = NSMenu()
 
     private let openSettings: () -> Void
     private let clearHistory: () -> Void
@@ -47,7 +49,6 @@ final class StatusBarController: NSObject {
             }
         }
 
-        let menu = NSMenu()
         // 先頭にバージョン情報（操作不可）。ローカルビルドは併記する。
         var versionTitle = L.format("menu.version", UpdateService.currentVersion)
         if isLocalBuild { versionTitle += " (" + L.string("menu_bar.local") + ")" }
@@ -70,6 +71,20 @@ final class StatusBarController: NSObject {
 
     func clearUpdateAvailable() {
         updateItem.title = Self.checkUpdateTitle
+    }
+
+    // MARK: - kuntraykun 連携
+
+    /// kuntraykun に集約されている間、自分のメニューバーアイコンを隠す/戻す。
+    /// `NSStatusItem` 自体は破棄せず保持し、`popUpMenu(at:)` で使い回す。
+    func setManagedHidden(_ hidden: Bool) {
+        statusItem.isVisible = !hidden
+    }
+
+    /// 自分のステータスメニューを指定スクリーン座標（左下原点）に表示する。
+    /// kuntraykun からの showMenu 依頼で、kuntraykun アイコン直下に出すために使う。
+    func popUpMenu(at point: NSPoint) {
+        menu.popUp(positioning: nil, at: point, in: nil)
     }
 
     private func menuItem(title: String, action: Selector, key: String) -> NSMenuItem {
