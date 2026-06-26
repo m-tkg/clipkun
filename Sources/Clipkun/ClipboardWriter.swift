@@ -27,7 +27,25 @@ struct ClipboardWriter {
             return pasteboard.writeObjects([image])
         case .fileURLs:
             guard let urls = store.fileURLs(for: item), !urls.isEmpty else { return false }
-            return pasteboard.writeObjects(urls as [NSURL])
+            return writeFileURLs(urls)
         }
+    }
+
+    /// ファイル URL の文字列フレーバー（public.file-url）だけを載せる。
+    ///
+    /// `writeObjects([NSURL])` は内部でファイル本体へアクセスするため、TCC 保護フォルダ
+    /// （~/Downloads・~/Desktop・~/Documents 等）のファイルではアプリにアクセス権が無いと
+    /// 失敗し、クリップボードが空になる。ここでは各ファイルを `NSPasteboardItem` の
+    /// public.file-url 文字列として載せるだけにし（ファイル本体へはアクセスしない）、
+    /// 実際のファイル読み取りは貼り付け側（Finder 等、自分の権限を持つ）に委ねる。
+    /// NSFilenamesPboardType 等の旧フレーバーはシステムが自動派生する。
+    private func writeFileURLs(_ urls: [URL]) -> Bool {
+        let items = urls.map { url -> NSPasteboardItem in
+            let item = NSPasteboardItem()
+            item.setString(url.absoluteString, forType: .fileURL)
+            return item
+        }
+        pasteboard.clearContents()
+        return pasteboard.writeObjects(items)
     }
 }
