@@ -42,13 +42,20 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
         monitor.start()
 
-        // ポップアップで選んだら最新クリップボードへ書き戻す（自動ペーストはしない）。
+        // ポップアップで選んだら最新クリップボードへ書き戻す。
         popup.onSelect = { [weak self] item in
             guard let self else { return }
             writer.write(item)
             // 自分の書き戻しを二重取り込みしないよう、直近の変更を観測済みにする。
             monitor.ignoreCurrentChange()
             historyStore.markUsed(id: item.id)
+            // テキストに限り、クリップボードへ入れると同時に前面アプリへ自動ペーストする。
+            if item.kind == .text, AutoPaster.isTrusted(prompt: true) {
+                // パネルが閉じ前面アプリへフォーカスが戻るのを待ってから ⌘V を送る。
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.08) {
+                    AutoPaster.paste()
+                }
+            }
         }
 
         applySettings(settings)

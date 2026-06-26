@@ -61,6 +61,7 @@ struct PopupView: View {
                 LazyVStack(spacing: 2) {
                     ForEach(Array(viewModel.items.enumerated()), id: \.element.id) { index, item in
                         PopupRow(
+                            number: index + 1,
                             item: item,
                             isSelected: index == viewModel.selectedIndex,
                             thumbnail: viewModel.thumbnailProvider(item),
@@ -88,6 +89,7 @@ struct PopupView: View {
 
 /// 一覧の1行。
 private struct PopupRow: View {
+    let number: Int
     let item: ClipItem
     let isSelected: Bool
     let thumbnail: NSImage?
@@ -98,6 +100,12 @@ private struct PopupRow: View {
 
     var body: some View {
         HStack(spacing: 8) {
+            // 履歴の番号（最新が 1）。
+            Text("\(number)")
+                .font(.system(size: 11, weight: .medium))
+                .monospacedDigit()
+                .foregroundColor(.secondary)
+                .frame(width: 22, alignment: .trailing)
             icon
                 .frame(width: 32, height: 32)
             Text(item.preview)

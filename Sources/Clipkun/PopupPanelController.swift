@@ -105,8 +105,10 @@ final class PopupPanelController {
     // MARK: - 操作
 
     private func confirm(_ item: ClipItem) {
-        onSelect?(item)
+        // 先にパネルを閉じて前面アプリへフォーカスを戻してから選択処理を行う
+        // （テキストの自動ペースト時、⌘V が前面アプリへ届くようにするため）。
         hide()
+        onSelect?(item)
     }
 
     private func delete(_ item: ClipItem) {
