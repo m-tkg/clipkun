@@ -35,7 +35,7 @@ struct SettingsView: View {
                 .tabItem { Text(L.string("tab.history")) }
         }
         .padding()
-        .frame(width: 460, height: 320)
+        .frame(width: 460, height: 400)
         .alert(L.string("alert.error.title"), isPresented: Binding(
             get: { loginItemError != nil },
             set: { if !$0 { loginItemError = nil } }
@@ -114,6 +114,25 @@ struct HistorySettingsTab: View {
                 }
             }
 
+            HStack(alignment: .firstTextBaseline) {
+                Text(L.string("settings.popup_position"))
+                Spacer(minLength: 12)
+                Picker("", selection: $settings.popupPosition) {
+                    Text(L.string("popup_position.cursor")).tag(PopupPosition.cursor)
+                    Text(L.string("popup_position.center")).tag(PopupPosition.screenCenter)
+                }
+                .labelsHidden()
+                .frame(width: 160)
+            }
+
+            HStack(alignment: .firstTextBaseline) {
+                Text(L.string("settings.background_opacity"))
+                Slider(value: $settings.popupBackgroundOpacity, in: Settings.backgroundOpacityRange)
+                Text(String(format: "%.0f%%", settings.popupBackgroundOpacity * 100))
+                    .font(.caption).monospacedDigit()
+                    .frame(width: 44, alignment: .trailing)
+            }
+
             Text(L.string("settings.history.description"))
                 .font(.caption)
                 .foregroundColor(.secondary)
@@ -144,7 +163,7 @@ struct HistorySettingsTab: View {
     private var maxItemsBinding: SwiftUI.Binding<Int> {
         SwiftUI.Binding(
             get: { settings.maxItemCount },
-            set: { settings = Settings(popupHotKey: settings.popupHotKey, retention: settings.retention, maxItemCount: $0) }
+            set: { settings.maxItemCount = $0 }
         )
     }
 }

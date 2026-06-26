@@ -7,6 +7,8 @@ import ClipkunCore
 final class PopupViewModel: ObservableObject {
     @Published var items: [ClipItem] = []
     @Published var selectedIndex: Int = 0
+    /// 背景の不透明度（0=透明〜1=不透明）。
+    @Published var backgroundOpacity: Double = 0.9
     /// キーボード操作時のみ増えるカウンタ。これが変化したときだけ選択行へスクロールする
     /// （マウスホバーでの選択変更ではスクロールさせない）。
     @Published var keyboardScrollTick: Int = 0
@@ -39,7 +41,11 @@ struct PopupView: View {
             }
         }
         .frame(width: PopupMetrics.width)
-        .background(.regularMaterial)
+        .background(
+            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                .fill(.regularMaterial)
+                .opacity(viewModel.backgroundOpacity)
+        )
         .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
         .overlay(
             RoundedRectangle(cornerRadius: 10, style: .continuous)

@@ -22,7 +22,11 @@
 "settings.hotkey" = "Popup hotkey";
 "settings.retention" = "Retention period";
 "settings.max_items" = "Max items";
-"settings.history.description" = "Press the hotkey to show clipboard history at the cursor. History older than the retention period, and items beyond the max count, are deleted automatically.";
+"settings.popup_position" = "Position";
+"popup_position.cursor" = "At cursor";
+"popup_position.center" = "Screen center";
+"settings.background_opacity" = "Background opacity";
+"settings.history.description" = "Press the hotkey to show clipboard history at the chosen position. History older than the retention period, and items beyond the max count, are deleted automatically.";
 "unit.hours" = "hours";
 "unit.days" = "days";
 "hotkey.recording" = "Press a key…";

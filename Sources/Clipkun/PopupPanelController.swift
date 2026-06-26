@@ -41,6 +41,7 @@ final class PopupPanelController {
         store.pruneExpired(now: Date())
         viewModel.items = store.history.items
         viewModel.selectedIndex = 0
+        viewModel.backgroundOpacity = store.settings.popupBackgroundOpacity
 
         let panel = ensurePanel()
         // 再表示時に確実に最新の一覧を描画するため、ホスティングビューを作り直す。
@@ -94,16 +95,19 @@ final class PopupPanelController {
         return NSSize(width: PopupMetrics.width, height: height)
     }
 
-    /// カーソルを含む画面の可視領域内に収まるよう原点を決めて配置する。
+    /// 設定に応じて配置する。カーソル位置（既定）はカーソルを含む画面の可視領域内へ収め、
+    /// 画面中央指定時はカーソルを含む画面の中央へ置く。
     private func positionPanel(_ panel: NSPanel, size: NSSize) {
         let cursor = NSEvent.mouseLocation
         let screen = NSScreen.screens.first { $0.frame.contains(cursor) } ?? NSScreen.main
         let visible = screen?.visibleFrame ?? CGRect(origin: .zero, size: size)
-        let origin = PopupGeometry.origin(
-            cursor: cursor,
-            panelSize: size,
-            visibleFrame: visible
-        )
+        let origin: CGPoint
+        switch store.settings.popupPosition {
+        case .cursor:
+            origin = PopupGeometry.origin(cursor: cursor, panelSize: size, visibleFrame: visible)
+        case .screenCenter:
+            origin = PopupGeometry.centered(panelSize: size, visibleFrame: visible)
+        }
         panel.setFrameOrigin(origin)
     }
 

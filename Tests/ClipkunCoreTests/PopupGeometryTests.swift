@@ -49,6 +49,20 @@ final class PopupGeometryTests: XCTestCase {
         XCTAssertEqual(origin.y, 50 + 4) // カーソル上側
     }
 
+    func testCentered() {
+        let origin = PopupGeometry.centered(panelSize: panel, visibleFrame: screen)
+        // (1440/2 - 300/2, 900/2 - 400/2) = (570, 250)
+        XCTAssertEqual(origin.x, 570)
+        XCTAssertEqual(origin.y, 250)
+    }
+
+    func testCenteredOnOffsetScreen() {
+        let offset = CGRect(x: 100, y: 50, width: 1000, height: 800)
+        let origin = PopupGeometry.centered(panelSize: panel, visibleFrame: offset)
+        XCTAssertEqual(origin.x, 100 + 500 - 150) // 450
+        XCTAssertEqual(origin.y, 50 + 400 - 200)  // 250
+    }
+
     func testClampsTopEdgeWhenTooTall() {
         // 画面より高いパネルはどこにも収まらない → 上端にクランプ。
         let tall = CGSize(width: 300, height: 2000)

@@ -49,4 +49,12 @@ public enum PopupGeometry {
         }
         return CGPoint(x: x, y: y)
     }
+
+    /// 画面（`visibleFrame`）の中央にパネルを置くための原点（左下）を返す。
+    public static func centered(panelSize: CGSize, visibleFrame: CGRect) -> CGPoint {
+        CGPoint(
+            x: visibleFrame.midX - panelSize.width / 2,
+            y: visibleFrame.midY - panelSize.height / 2
+        )
+    }
 }

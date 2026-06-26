@@ -7,11 +7,24 @@ final class SettingsTests: XCTestCase {
         XCTAssertEqual(s.popupHotKey, .defaultPopup)
         XCTAssertEqual(s.retention, .default)
         XCTAssertEqual(s.maxItemCount, 200)
+        XCTAssertEqual(s.popupPosition, .cursor)
+        XCTAssertEqual(s.popupBackgroundOpacity, 0.9)
     }
 
     func testMaxItemCountClamp() {
         XCTAssertEqual(Settings(maxItemCount: 1).maxItemCount, 10)
         XCTAssertEqual(Settings(maxItemCount: 5000).maxItemCount, 1000)
+    }
+
+    func testBackgroundOpacityClamp() {
+        XCTAssertEqual(Settings(popupBackgroundOpacity: 0.0).popupBackgroundOpacity, 0.2)
+        XCTAssertEqual(Settings(popupBackgroundOpacity: 2.0).popupBackgroundOpacity, 1.0)
+    }
+
+    func testPopupPositionRoundTrip() throws {
+        let s = Settings(popupPosition: .screenCenter)
+        let data = try JSONEncoder().encode(s)
+        XCTAssertEqual(try JSONDecoder().decode(Settings.self, from: data).popupPosition, .screenCenter)
     }
 
     func testDecodeFillsMissingKeysWithDefaults() throws {
