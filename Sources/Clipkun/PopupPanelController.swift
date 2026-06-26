@@ -155,10 +155,11 @@ final class PopupPanelController {
             hide()
             return nil
         case kVK_DownArrow:
-            if count > 0 { viewModel.selectViaKeyboard((viewModel.selectedIndex + 1) % count) }
+            // 端で止める（反対側へループしない）。
+            if count > 0 { viewModel.selectViaKeyboard(min(viewModel.selectedIndex + 1, count - 1)) }
             return nil
         case kVK_UpArrow:
-            if count > 0 { viewModel.selectViaKeyboard((viewModel.selectedIndex - 1 + count) % count) }
+            if count > 0 { viewModel.selectViaKeyboard(max(viewModel.selectedIndex - 1, 0)) }
             return nil
         case kVK_Return, kVK_ANSI_KeypadEnter:
             if count > 0, viewModel.items.indices.contains(viewModel.selectedIndex) {
