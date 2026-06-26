@@ -43,6 +43,13 @@ final class PopupPanelController {
         viewModel.selectedIndex = 0
 
         let panel = ensurePanel()
+        // 再表示時に確実に最新の一覧を描画するため、ホスティングビューを作り直す。
+        // （orderOut で隠した NSHostingView は再表示時に viewModel の変更を取りこぼし、
+        //   前回のスナップショットを表示することがあるため。）
+        let hosting = NSHostingView(rootView: PopupView(viewModel: viewModel))
+        hosting.autoresizingMask = [.width, .height]
+        panel.contentView = hosting
+
         let size = panelSize(for: viewModel.items.count)
         panel.setContentSize(size)
         positionPanel(panel, size: size)
