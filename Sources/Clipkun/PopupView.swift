@@ -7,6 +7,15 @@ import ClipkunCore
 final class PopupViewModel: ObservableObject {
     @Published var items: [ClipItem] = []
     @Published var selectedIndex: Int = 0
+    /// キーボード操作時のみ増えるカウンタ。これが変化したときだけ選択行へスクロールする
+    /// （マウスホバーでの選択変更ではスクロールさせない）。
+    @Published var keyboardScrollTick: Int = 0
+
+    /// キーボード（↑↓）で選択を移動する。ホバーと違い、選択行までスクロールする。
+    func selectViaKeyboard(_ index: Int) {
+        selectedIndex = index
+        keyboardScrollTick &+= 1
+    }
 
     /// サムネ画像の取得（HistoryStore に委譲）。
     var thumbnailProvider: (ClipItem) -> NSImage? = { _ in nil }
@@ -66,9 +75,10 @@ struct PopupView: View {
                 }
                 .padding(6)
             }
-            .onChange(of: viewModel.selectedIndex) { newValue in
+            // キーボード操作時のみスクロールする（マウスホバーでは勝手にスクロールしない）。
+            .onChange(of: viewModel.keyboardScrollTick) { _ in
                 withAnimation(.easeOut(duration: 0.1)) {
-                    proxy.scrollTo(newValue, anchor: .center)
+                    proxy.scrollTo(viewModel.selectedIndex, anchor: .center)
                 }
             }
         }

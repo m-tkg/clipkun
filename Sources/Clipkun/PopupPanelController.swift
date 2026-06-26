@@ -155,10 +155,10 @@ final class PopupPanelController {
             hide()
             return nil
         case kVK_DownArrow:
-            if count > 0 { viewModel.selectedIndex = (viewModel.selectedIndex + 1) % count }
+            if count > 0 { viewModel.selectViaKeyboard((viewModel.selectedIndex + 1) % count) }
             return nil
         case kVK_UpArrow:
-            if count > 0 { viewModel.selectedIndex = (viewModel.selectedIndex - 1 + count) % count }
+            if count > 0 { viewModel.selectViaKeyboard((viewModel.selectedIndex - 1 + count) % count) }
             return nil
         case kVK_Return, kVK_ANSI_KeypadEnter:
             if count > 0, viewModel.items.indices.contains(viewModel.selectedIndex) {
