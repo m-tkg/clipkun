@@ -70,7 +70,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         if appliedPopupHotKey != settings.popupHotKey {
             hotKey.register(id: HotKeyID.popup, config: settings.popupHotKey) { [weak self] in
-                self?.popup.toggle()
+                guard let self else { return }
+                // ポーリング間隔を待たずに直近のコピー（直前の Ctrl+Cmd+Shift+4 等）を取り込んでから表示する。
+                self.monitor.captureNow()
+                self.popup.toggle()
             }
             appliedPopupHotKey = settings.popupHotKey
         }

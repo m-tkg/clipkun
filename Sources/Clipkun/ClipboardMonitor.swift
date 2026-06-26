@@ -43,6 +43,12 @@ final class ClipboardMonitor {
         lastChangeCount = pasteboard.changeCount
     }
 
+    /// 今すぐ1回ポーリングする。ポップアップ表示の直前に呼び、ポーリング間隔（0.5秒）を
+    /// 待たずに直近のコピーを取り込んでから一覧を出すために使う。
+    func captureNow() {
+        poll()
+    }
+
     private func poll() {
         let current = pasteboard.changeCount
         guard current != lastChangeCount else { return }
