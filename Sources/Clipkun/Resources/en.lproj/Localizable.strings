@@ -34,6 +34,9 @@
 /* Popup */
 "popup.empty" = "No history";
 "popup.delete" = "Delete this item";
+"popup.search.placeholder" = "Search";
+"popup.no_results" = "No matches";
+"popup.clear_all" = "Clear All History";
 
 /* Update flow */
 "update.latest" = "Clipkun %@ is up to date.";

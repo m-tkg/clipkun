@@ -34,6 +34,9 @@
 /* Popup */
 "popup.empty" = "履歴がありません";
 "popup.delete" = "この履歴を削除";
+"popup.search.placeholder" = "検索";
+"popup.no_results" = "該当なし";
+"popup.clear_all" = "履歴をすべて削除";
 
 /* Update flow */
 "update.latest" = "Clipkun %@ は最新です。";
