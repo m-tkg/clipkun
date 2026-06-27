@@ -166,6 +166,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                     availableRelease = nil
                     statusBar?.clearUpdateAvailable()
                 }
+                // kuntraykun にもアップデート有無を伝える（集約バッジ/赤丸用）。
+                kuntraykunBridge?.reportUpdate(isNewer)
                 if interactive {
                     if isNewer {
                         promptInstall(release)
