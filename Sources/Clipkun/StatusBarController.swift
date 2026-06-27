@@ -51,6 +51,8 @@ final class StatusBarController: NSObject {
             }
             installBadge(on: button)
         }
+        // kuntraykun 一覧用に、現在のメニューバーアイコンを共有場所へ書き出す（連携 v2）。
+        KuntraykunIconExport.export(statusItem.button?.image)
 
         // 先頭にバージョン情報（操作不可）。ローカルビルドは併記する。
         var versionTitle = L.format("menu.version", UpdateService.currentVersion)
