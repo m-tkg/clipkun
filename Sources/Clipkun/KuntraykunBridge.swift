@@ -21,6 +21,7 @@ final class KuntraykunBridge {
     private static let syncName = Notification.Name("com.mtkg.kuntraykun.sync")
     private static let showMenuName = Notification.Name("com.mtkg.kuntraykun.showMenu")
     private static let appLaunchedName = Notification.Name("com.mtkg.kun.appLaunched")
+    private static let updateStateName = Notification.Name("com.mtkg.kun.updateState")
     private static let managedDefaultsKey = "KuntraykunManaged"
 
     /// 自分のアイコンを隠す/戻すクロージャ（StatusBarController へ委譲）。
@@ -34,6 +35,8 @@ final class KuntraykunBridge {
     private var isManaged: Bool
     /// 遅延表示（復活）の世代。再評価のたびに進めて保留中の復活をキャンセルする。
     private var showGeneration = 0
+    /// 直近に kuntraykun へ報告したアップデート有無。sync 受信時に再送して整合させる。
+    private var lastReportedUpdate = false
     /// `NSWorkspace.runningApplications` の KVO 監視トークン。
     private var runningAppsObservation: NSKeyValueObservation?
 
@@ -85,6 +88,18 @@ final class KuntraykunBridge {
             log.info("managed=\(nowManaged, privacy: .public)")
         }
         refreshVisibility()
+        // 起動直後の kuntraykun にも現在のアップデート状態を伝える。
+        reportUpdate(lastReportedUpdate)
+    }
+
+    /// 「アップデートあり/なし」を kuntraykun に報告する（更新検知時・解消時に呼ぶ）。
+    func reportUpdate(_ hasUpdate: Bool) {
+        lastReportedUpdate = hasUpdate
+        DistributedNotificationCenter.default().postNotificationName(
+            Self.updateStateName, object: nil,
+            userInfo: ["bundleID": myBundleID, "hasUpdate": hasUpdate ? "1" : "0", "protocol": "1"],
+            deliverImmediately: true
+        )
     }
 
     /// メニュー表示依頼。自分宛なら指定スクリーン座標に自分のメニューを出す。
