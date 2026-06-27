@@ -11,18 +11,9 @@ final class PopupViewModel: ObservableObject {
     @Published var searchText: String = ""
     /// 背景の不透明度（0=透明〜1=不透明）。
     @Published var backgroundOpacity: Double = 0.9
-    /// キーボード操作時のみ増えるカウンタ。これが変化したときだけ選択行へスクロールする
-    /// （マウスホバーでの選択変更ではスクロールさせない）。
-    @Published var keyboardScrollTick: Int = 0
 
     /// `searchText` で絞り込んだ表示用の一覧。選択/確定/削除/ナビはこれを基準にする。
     var filteredItems: [ClipItem] { filterClips(items, query: searchText) }
-
-    /// キーボード（↑↓）で選択を移動する。ホバーと違い、選択行までスクロールする。
-    func selectViaKeyboard(_ index: Int) {
-        selectedIndex = index
-        keyboardScrollTick &+= 1
-    }
 
     /// サムネ画像の取得（HistoryStore に委譲）。
     var thumbnailProvider: (ClipItem) -> NSImage? = { _ in nil }
@@ -38,12 +29,13 @@ final class PopupViewModel: ObservableObject {
 /// 選択行をハイライトし、クリックで確定、ゴミ箱で個別削除する。
 struct PopupView: View {
     @ObservedObject var viewModel: PopupViewModel
-    /// 検索フォームへ常時フォーカスを当て、ホットキー直後から type-to-search できるようにする。
-    @FocusState private var searchFocused: Bool
 
     var body: some View {
         VStack(spacing: 0) {
-            searchField
+            // 検索フィールド（AppKit の NSTextField）はこの透明スペースの上に
+            // コントローラが別レイヤーで重ねる。SwiftUI ツリー内に AppKit を埋め込むと
+            // この `.nonactivatingPanel` ではリアクティブ再描画が止まるため分離している。
+            Color.clear.frame(height: PopupMetrics.searchFieldHeight)
             Divider()
             content
         }
@@ -58,17 +50,6 @@ struct PopupView: View {
             RoundedRectangle(cornerRadius: 10, style: .continuous)
                 .strokeBorder(Color.primary.opacity(0.12), lineWidth: 1)
         )
-    }
-
-    private var searchField: some View {
-        TextField(L.string("popup.search.placeholder"), text: $viewModel.searchText)
-            .textFieldStyle(.plain)
-            .font(.system(size: 13))
-            .padding(.horizontal, 12)
-            .frame(height: PopupMetrics.searchFieldHeight)
-            .focused($searchFocused)
-            // rebuildContent で View を作り直すたびに onAppear が走り、削除後もフォーカスが復帰する。
-            .onAppear { searchFocused = true }
     }
 
     @ViewBuilder
@@ -110,19 +91,12 @@ struct PopupView: View {
                             onDelete: { viewModel.onDelete(item) }
                         )
                         .id(index)
-                        .onHover { hovering in
-                            if hovering { viewModel.selectedIndex = index }
-                        }
                     }
                 }
                 .padding(6)
             }
-            // キーボード操作時のみスクロールする（マウスホバーでは勝手にスクロールしない）。
-            .onChange(of: viewModel.keyboardScrollTick) { _ in
-                withAnimation(.easeOut(duration: 0.1)) {
-                    proxy.scrollTo(viewModel.selectedIndex, anchor: .center)
-                }
-            }
+            // この View は選択/検索のたびに作り直されるため、表示直後に選択行が見えるようスクロールする。
+            .onAppear { proxy.scrollTo(viewModel.selectedIndex, anchor: .center) }
         }
         .frame(height: PopupMetrics.listHeight(for: items.count))
     }
