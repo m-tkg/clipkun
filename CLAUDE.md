@@ -169,6 +169,21 @@ GitHub Releases から最新版を取得して自己更新する。
 - **永続化**: `~/Library/Application Support/Clipkun/` に `index.json`（メタデータ）＋
   `blobs/`（画像PNG・ファイルパス群・長文）＋ `thumbnails/`。dedup は `contentHash`（SHA-256）。
 
+## アップデート（定期監視＋赤バッジ）
+
+`CLAUDE_base.md`「### 4. アップデート機能を入れる」の方式に準拠。要点と実装箇所:
+- **チェックの単一経路**: `AppDelegate.startUpdateCheck(interactive:)`。起動時1回 ＋ `startUpdateTimer()` の
+  `Timer.scheduledTimer(withTimeInterval: 3600, repeats: true)`（未認証 API 60回/時に余裕を持って1時間・`tolerance` 360）
+  ＋ `NSWorkspace.didWakeNotification`（`systemDidWake`）でスリープ復帰時も即チェック。タイマーは
+  `MainActor.assumeIsolated` で `@MainActor` のチェックを呼ぶ。
+- **赤バッジ**: `Sources/Clipkun/UpdateBadgeView.swift`（`NSView`＋`CALayer` の赤丸・白縁取り）を
+  `StatusBarController.installBadge(on:)` で `statusItem.button` にオーバーレイ。ベース画像は `isTemplate` 維持。
+  位置は **アイコン画像の幅基準**（`leading = button.leading + (iconWidth − badgeSize)`, `bottom = button.bottom`）で、
+  「ローカル」併記時（`imagePosition = .imageLeading`）でもアイコングリフの右下に固定。
+- **表示/非表示の集約**: `StatusBarController.setUpdateAvailable`（表示）/ `clearUpdateAvailable`（非表示）に
+  `badgeView?.isHidden` のトグルを置き、起動・定期・手動・復帰の全経路で同期。
+- 注意: kuntraykun 集約でアイコンを隠している間（`setManagedHidden(true)`）はバッジも見えない。
+
 ## Kuntraykun 連携（実装済み）
 
 本アプリは kuntraykun（`com.mtkg.kuntraykun`）にメニューバーアイコンを集約させる連携に対応している。

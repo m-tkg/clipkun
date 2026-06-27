@@ -20,6 +20,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var statusBar: StatusBarController?
     private var settingsWindowController: SettingsWindowController?
     private var pruneTimer: Timer?
+    private var updateCheckTimer: Timer?
     private var kuntraykunBridge: KuntraykunBridge?
 
     // 機能ごとの安定したホットキー ID。
@@ -78,6 +79,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         startPruneTimer()
         startUpdateCheck(interactive: false)
+        startUpdateTimer()
     }
 
     /// 設定を各所へ反映する。ホットキーは構成が変わったときだけ登録し直す。
@@ -126,6 +128,30 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     // MARK: - アップデート
+
+    /// 定期サイレントチェック＋スリープ復帰チェックを開始する。
+    /// 間隔は未認証 GitHub API のレート制限（60回/時）に十分余裕を持って1時間。
+    /// `Timer` はスリープ中に発火しないため、`didWakeNotification` で復帰時にも即チェックする。
+    private func startUpdateTimer() {
+        let timer = Timer.scheduledTimer(withTimeInterval: 3600, repeats: true) { [weak self] _ in
+            MainActor.assumeIsolated {
+                self?.startUpdateCheck(interactive: false)
+            }
+        }
+        timer.tolerance = 360 // 省電力のためコアレッシングを許可（間隔の約10%）。
+        updateCheckTimer = timer
+
+        NSWorkspace.shared.notificationCenter.addObserver(
+            self,
+            selector: #selector(systemDidWake),
+            name: NSWorkspace.didWakeNotification,
+            object: nil
+        )
+    }
+
+    @objc private func systemDidWake() {
+        startUpdateCheck(interactive: false)
+    }
 
     private func startUpdateCheck(interactive: Bool) {
         Task { @MainActor in
