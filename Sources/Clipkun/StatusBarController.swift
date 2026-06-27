@@ -13,6 +13,8 @@ final class StatusBarController: NSObject {
     private let checkForUpdate: () -> Void
     private let quitApp: () -> Void
     private var updateItem: NSMenuItem!
+    /// 新版ありを示す赤バッジ（アイコン右下にオーバーレイ）。
+    private var badgeView: NSView?
 
     private static var checkUpdateTitle: String { L.string("menu.check_update") }
 
@@ -47,6 +49,7 @@ final class StatusBarController: NSObject {
                 button.title = " " + L.string("menu_bar.local")
                 button.imagePosition = .imageLeading
             }
+            installBadge(on: button)
         }
 
         // 先頭にバージョン情報（操作不可）。ローカルビルドは併記する。
@@ -67,10 +70,30 @@ final class StatusBarController: NSObject {
 
     func setUpdateAvailable(tag: String) {
         updateItem.title = L.format("menu.install_update", tag)
+        badgeView?.isHidden = false
     }
 
     func clearUpdateAvailable() {
         updateItem.title = Self.checkUpdateTitle
+        badgeView?.isHidden = true
+    }
+
+    /// 赤バッジをアイコン右下へオーバーレイする。位置はアイコン画像の幅基準で固定し、
+    /// 「ローカル」テキスト併記時（imagePosition = .imageLeading）でも常にアイコングリフの右下に乗せる。
+    private func installBadge(on button: NSStatusBarButton) {
+        let size: CGFloat = 8
+        let iconWidth = button.image?.size.width ?? 18
+        let badge = UpdateBadgeView(diameter: size)
+        badge.translatesAutoresizingMaskIntoConstraints = false
+        badge.isHidden = true
+        button.addSubview(badge)
+        NSLayoutConstraint.activate([
+            badge.widthAnchor.constraint(equalToConstant: size),
+            badge.heightAnchor.constraint(equalToConstant: size),
+            badge.leadingAnchor.constraint(equalTo: button.leadingAnchor, constant: iconWidth - size),
+            badge.bottomAnchor.constraint(equalTo: button.bottomAnchor),
+        ])
+        badgeView = badge
     }
 
     // MARK: - kuntraykun 連携
