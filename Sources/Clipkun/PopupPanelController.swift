@@ -1,5 +1,6 @@
 import AppKit
 import SwiftUI
+import Combine
 import Carbon.HIToolbox
 import ClipkunCore
 
@@ -18,12 +19,18 @@ final class PopupPanelController {
 
     private var keyMonitor: Any?
     private var globalClickMonitor: Any?
+    private var searchCancellable: AnyCancellable?
 
     init(store: HistoryStore) {
         self.store = store
         viewModel.thumbnailProvider = { [weak store] item in store?.thumbnail(for: item) }
         viewModel.onConfirm = { [weak self] item in self?.confirm(item) }
         viewModel.onDelete = { [weak self] item in self?.delete(item) }
+        viewModel.onClearAll = { [weak self] in self?.clearAll() }
+        // 検索文字が変わるたびに、絞り込み件数に合わせてパネルを上端固定でリサイズする。
+        searchCancellable = viewModel.$searchText
+            .dropFirst()
+            .sink { [weak self] _ in self?.handleSearchChanged() }
     }
 
     /// 表示/非表示をトグルする（ホットキー押下時）。
@@ -39,6 +46,7 @@ final class PopupPanelController {
 
     private func show() {
         store.pruneExpired(now: Date())
+        viewModel.searchText = ""
         viewModel.items = store.history.items
         viewModel.selectedIndex = 0
         viewModel.backgroundOpacity = store.settings.popupBackgroundOpacity
@@ -49,7 +57,7 @@ final class PopupPanelController {
         //   前回のスナップショットを表示することがあるため。）
         rebuildContent(in: panel)
 
-        let size = panelSize(for: viewModel.items.count)
+        let size = panelSize(for: viewModel.filteredItems.count)
         panel.setContentSize(size)
         positionPanel(panel, size: size)
 
@@ -91,8 +99,7 @@ final class PopupPanelController {
     }
 
     private func panelSize(for count: Int) -> NSSize {
-        let height = count == 0 ? 64 : PopupMetrics.height(for: count)
-        return NSSize(width: PopupMetrics.width, height: height)
+        NSSize(width: PopupMetrics.width, height: PopupMetrics.totalHeight(for: count))
     }
 
     /// 設定に応じて配置する。カーソル位置（既定）はカーソルを含む画面の可視領域内へ収め、
@@ -123,16 +130,36 @@ final class PopupPanelController {
     private func delete(_ item: ClipItem) {
         store.remove(id: item.id)
         viewModel.items = store.history.items
-        if viewModel.items.isEmpty {
+        if viewModel.filteredItems.isEmpty {
             hide()
             return
         }
-        viewModel.selectedIndex = min(viewModel.selectedIndex, viewModel.items.count - 1)
+        viewModel.selectedIndex = min(viewModel.selectedIndex, viewModel.filteredItems.count - 1)
+        // 一覧を確実に再描画するためホスティングビューを作り直す（onAppear で検索フォーカスも復帰）。
+        resizeKeepingTop(rebuild: true)
+    }
+
+    /// 全履歴を削除して閉じる（一覧の右クリックメニュー）。
+    private func clearAll() {
+        store.clear()
+        hide()
+    }
+
+    /// 検索文字の変化に応じて、パネルを上端固定でリサイズする。
+    private func handleSearchChanged() {
+        guard let panel, panel.isVisible else { return }
+        viewModel.selectedIndex = 0
+        // 一覧は @Published で反応的に再描画されるため rebuild しない。
+        // （rebuild するとタイピング中の TextField のフォーカス/IME 変換が切れるため。）
+        resizeKeepingTop(rebuild: false)
+    }
+
+    /// パネルの上端を固定したまま、現在の絞り込み件数に合わせて高さを調整する。
+    private func resizeKeepingTop(rebuild: Bool) {
         guard let panel else { return }
-        // 一覧を確実に再描画するためホスティングビューを作り直し、上端を固定したままサイズ調整する。
         let topLeft = NSPoint(x: panel.frame.minX, y: panel.frame.maxY)
-        rebuildContent(in: panel)
-        panel.setContentSize(panelSize(for: viewModel.items.count))
+        if rebuild { rebuildContent(in: panel) }
+        panel.setContentSize(panelSize(for: viewModel.filteredItems.count))
         panel.setFrameTopLeftPoint(topLeft)
     }
 
@@ -159,11 +186,31 @@ final class PopupPanelController {
     }
 
     /// 取り込んだら nil（消費）、対象外なら event（素通し）を返す。
+    /// ローカルモニタは first responder（検索フォーム）より先にイベントを見るため、ナビゲーション系
+    /// （↑↓ / Enter / Esc / ⌘⌫）だけを消費し、文字キー・backspace・del 単独は素通しして
+    /// 検索フォームの編集に使わせる。
     private func handleKey(_ event: NSEvent) -> NSEvent? {
-        let count = viewModel.items.count
-        switch Int(event.keyCode) {
+        let items = viewModel.filteredItems
+        let count = items.count
+        let keyCode = Int(event.keyCode)
+
+        // ⌘⌫ / ⌘del で選択中の履歴を削除（backspace/del 単独は検索編集に使うため衝突を避ける）。
+        if event.modifierFlags.contains(.command),
+           keyCode == kVK_Delete || keyCode == kVK_ForwardDelete {
+            if count > 0, items.indices.contains(viewModel.selectedIndex) {
+                delete(items[viewModel.selectedIndex])
+            }
+            return nil
+        }
+
+        switch keyCode {
         case kVK_Escape:
-            hide()
+            // 検索文字があれば 1 回目で検索クリア、空なら閉じる。
+            if viewModel.searchText.isEmpty {
+                hide()
+            } else {
+                viewModel.searchText = ""
+            }
             return nil
         case kVK_DownArrow:
             // 端で止める（反対側へループしない）。
@@ -173,8 +220,8 @@ final class PopupPanelController {
             if count > 0 { viewModel.selectViaKeyboard(max(viewModel.selectedIndex - 1, 0)) }
             return nil
         case kVK_Return, kVK_ANSI_KeypadEnter:
-            if count > 0, viewModel.items.indices.contains(viewModel.selectedIndex) {
-                confirm(viewModel.items[viewModel.selectedIndex])
+            if count > 0, items.indices.contains(viewModel.selectedIndex) {
+                confirm(items[viewModel.selectedIndex])
             }
             return nil
         default:

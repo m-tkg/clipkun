@@ -7,11 +7,16 @@ import ClipkunCore
 final class PopupViewModel: ObservableObject {
     @Published var items: [ClipItem] = []
     @Published var selectedIndex: Int = 0
+    /// 検索フォームの入力文字列。変化に応じて `filteredItems` が絞り込まれる。
+    @Published var searchText: String = ""
     /// 背景の不透明度（0=透明〜1=不透明）。
     @Published var backgroundOpacity: Double = 0.9
     /// キーボード操作時のみ増えるカウンタ。これが変化したときだけ選択行へスクロールする
     /// （マウスホバーでの選択変更ではスクロールさせない）。
     @Published var keyboardScrollTick: Int = 0
+
+    /// `searchText` で絞り込んだ表示用の一覧。選択/確定/削除/ナビはこれを基準にする。
+    var filteredItems: [ClipItem] { filterClips(items, query: searchText) }
 
     /// キーボード（↑↓）で選択を移動する。ホバーと違い、選択行までスクロールする。
     func selectViaKeyboard(_ index: Int) {
@@ -25,20 +30,22 @@ final class PopupViewModel: ObservableObject {
     var onConfirm: (ClipItem) -> Void = { _ in }
     /// 行の個別削除（ゴミ箱）。
     var onDelete: (ClipItem) -> Void = { _ in }
+    /// 全履歴削除（一覧の右クリックメニュー）。
+    var onClearAll: () -> Void = {}
 }
 
 /// 履歴一覧。各行はサムネ/アイコン＋プレビュー＋右端ゴミ箱。
 /// 選択行をハイライトし、クリックで確定、ゴミ箱で個別削除する。
 struct PopupView: View {
     @ObservedObject var viewModel: PopupViewModel
+    /// 検索フォームへ常時フォーカスを当て、ホットキー直後から type-to-search できるようにする。
+    @FocusState private var searchFocused: Bool
 
     var body: some View {
-        Group {
-            if viewModel.items.isEmpty {
-                emptyState
-            } else {
-                list
-            }
+        VStack(spacing: 0) {
+            searchField
+            Divider()
+            content
         }
         .frame(width: PopupMetrics.width)
         .background(
@@ -53,21 +60,49 @@ struct PopupView: View {
         )
     }
 
+    private var searchField: some View {
+        TextField(L.string("popup.search.placeholder"), text: $viewModel.searchText)
+            .textFieldStyle(.plain)
+            .font(.system(size: 13))
+            .padding(.horizontal, 12)
+            .frame(height: PopupMetrics.searchFieldHeight)
+            .focused($searchFocused)
+            // rebuildContent で View を作り直すたびに onAppear が走り、削除後もフォーカスが復帰する。
+            .onAppear { searchFocused = true }
+    }
+
+    @ViewBuilder
+    private var content: some View {
+        let items = viewModel.filteredItems
+        Group {
+            if items.isEmpty {
+                emptyState
+            } else {
+                list(items)
+            }
+        }
+        // 一覧を右クリック → 全履歴削除（検索フォームはネイティブの編集メニューを保つため対象外）。
+        .contextMenu {
+            Button(L.string("popup.clear_all"), role: .destructive) { viewModel.onClearAll() }
+        }
+    }
+
     private var emptyState: some View {
-        Text(L.string("popup.empty"))
+        // 履歴ゼロなら「履歴がありません」、検索ヒットゼロなら「該当なし」。
+        Text(viewModel.items.isEmpty ? L.string("popup.empty") : L.string("popup.no_results"))
             .font(.callout)
             .foregroundColor(.secondary)
             .frame(maxWidth: .infinity)
-            .frame(height: 64)
+            .frame(height: PopupMetrics.listHeight(for: 0))
     }
 
-    private var list: some View {
+    private func list(_ items: [ClipItem]) -> some View {
         ScrollViewReader { proxy in
             ScrollView {
                 LazyVStack(spacing: 2) {
-                    ForEach(Array(viewModel.items.enumerated()), id: \.element.id) { index, item in
+                    ForEach(Array(items.enumerated()), id: \.element.id) { index, item in
                         PopupRow(
-                            number: index + 1,
+                            number: recencyNumber(of: item),
                             item: item,
                             isSelected: index == viewModel.selectedIndex,
                             thumbnail: viewModel.thumbnailProvider(item),
@@ -89,7 +124,12 @@ struct PopupView: View {
                 }
             }
         }
-        .frame(height: PopupMetrics.height(for: viewModel.items.count))
+        .frame(height: PopupMetrics.listHeight(for: items.count))
+    }
+
+    /// 行番号は「最新＝1」の意味を保つため、全履歴での位置で表示する（フィルタ中も新しさが分かる）。
+    private func recencyNumber(of item: ClipItem) -> Int {
+        (viewModel.items.firstIndex(of: item) ?? 0) + 1
     }
 }
 
@@ -166,9 +206,17 @@ enum PopupMetrics {
     static let rowHeight: CGFloat = 46
     static let maxVisibleRows = 8
     static let verticalPadding: CGFloat = 12
+    /// 最上部の検索フォームの高さ。
+    static let searchFieldHeight: CGFloat = 36
 
-    static func height(for count: Int) -> CGFloat {
+    /// 一覧部分の高さ（0件でも空状態の最小高さを確保する）。
+    static func listHeight(for count: Int) -> CGFloat {
         let rows = min(max(count, 1), maxVisibleRows)
         return CGFloat(rows) * rowHeight + verticalPadding
+    }
+
+    /// パネル全体の高さ（検索フォーム＋区切り線＋一覧）。
+    static func totalHeight(for count: Int) -> CGFloat {
+        searchFieldHeight + 1 + listHeight(for: count)
     }
 }
