@@ -96,8 +96,12 @@ final class KuntraykunBridge {
     /// アイコン表示規則: 隠す = (管理対象) かつ (kuntraykun 起動中)。
     /// kuntraykun が未起動なら隠さない（操作不能を防ぐフォールバック）。
     @objc private func refreshVisibility() {
-        let hubRunning = Self.kuntraykunBundleIDs.contains { id in
-            !NSRunningApplication.runningApplications(withBundleIdentifier: id).isEmpty
+        // NSRunningApplication.runningApplications(withBundleIdentifier:) は実行中でも空を返すことがあり
+        // （誤判定でアイコンが再表示される）、KVO 対象の NSWorkspace.shared.runningApplications と
+        // 同じソースで判定して整合させる。
+        let hubRunning = NSWorkspace.shared.runningApplications.contains { app in
+            guard let id = app.bundleIdentifier else { return false }
+            return Self.kuntraykunBundleIDs.contains(id)
         }
         setHidden(isManaged && hubRunning)
     }
