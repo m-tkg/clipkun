@@ -32,6 +32,8 @@ final class KuntraykunBridge {
     private let myBundleID: String
     /// kuntraykun の管理対象に選ばれているか（UserDefaults に永続化）。
     private var isManaged: Bool
+    /// 遅延表示（復活）の世代。再評価のたびに進めて保留中の復活をキャンセルする。
+    private var showGeneration = 0
     /// `NSWorkspace.runningApplications` の KVO 監視トークン。
     private var runningAppsObservation: NSKeyValueObservation?
 
@@ -103,6 +105,21 @@ final class KuntraykunBridge {
             guard let id = app.bundleIdentifier else { return false }
             return Self.kuntraykunBundleIDs.contains(id)
         }
-        setHidden(isManaged && hubRunning)
+        // 再評価のたびに世代を進め、保留中の遅延表示を無効化する。
+        showGeneration &+= 1
+        if !isManaged || hubRunning {
+            // 管理対象でない→表示、管理対象かつ kuntraykun 起動中→隠す（いずれも即時）。
+            setHidden(isManaged && hubRunning)
+        } else {
+            // 管理対象だが kuntraykun を検知できない。KVO の瞬間的なゆらぎで誤って復活し
+            // アイコンが一瞬出てしまうのを防ぐため、少し待ってから復活する（待機中に再検知したらキャンセル）。
+            let gen = showGeneration
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) { [weak self] in
+                MainActor.assumeIsolated {
+                    guard let self, self.showGeneration == gen else { return }
+                    self.setHidden(false)
+                }
+            }
+        }
     }
 }
