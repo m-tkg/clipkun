@@ -192,3 +192,7 @@ GitHub Releases から最新版を取得して自己更新する。
   `AppDelegate.swift`（`bridge.start()` の配線）。
 - 仕様: kuntraykun リポジトリ `docs/kun-integration-protocol.md`、共通方針は `CLAUDE_base.md`「Kuntraykun 連携」。
 - 管理対象フラグは `UserDefaults`（キー `KuntraykunManaged`）に永続化する。
+- **実アイコンのライブ書き出し（v2）**: `KuntraykunIconExport.export(_:)`（`Sources/Clipkun/KuntraykunIconExport.swift`）で、
+  `StatusBarController` がメニューバーアイコンを設定する箇所で現在アイコンを
+  `~/Library/Application Support/Kuntraykun/MenuBarIcons/<基底ID>.png` に書き出す（テンプレートは `.template` マーカー併記）。
+  kuntraykun はこれを優先して一覧に表示する。
