@@ -121,6 +121,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 let pasteboard = NSPasteboard.general
                 pasteboard.clearContents()
                 pasteboard.setString(text, forType: .string)
+                // テキスト履歴の選択時と同様に、前面アプリへ自動ペーストする。
+                // パネルは OCR 開始前に閉じているが、フォーカス復帰の猶予は同じだけ取る。
+                if AutoPaster.isTrusted(prompt: true) {
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.08) {
+                        AutoPaster.paste()
+                    }
+                }
             } catch {
                 log.error("text recognition failed: \(error.localizedDescription, privacy: .public)")
                 showError(L.format("ocr.failed", error.localizedDescription))
