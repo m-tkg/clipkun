@@ -85,6 +85,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         startPruneTimer()
         startUpdateCheck(interactive: false)
         startUpdateTimer()
+
+        // OCR モデルの初回ロードは数十秒かかることがあるため、起動時に温めておく。
+        ImageTextRecognizer.warmUp()
     }
 
     /// 設定を各所へ反映する。ホットキーは構成が変わったときだけ登録し直す。
