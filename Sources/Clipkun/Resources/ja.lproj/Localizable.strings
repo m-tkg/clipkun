@@ -40,6 +40,7 @@
 "popup.ocr" = "画像内のテキストをコピー";
 "ocr.no_text" = "画像からテキストを認識できませんでした。";
 "ocr.failed" = "テキスト認識に失敗しました: %@";
+"hud.ocr_warmup" = "OCR エンジンを準備しています…";
 
 /* Update flow */
 "update.latest" = "Clipkun %@ は最新です。";

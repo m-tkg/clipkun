@@ -29,13 +29,14 @@ enum ImageTextRecognizer {
     /// 起動時に呼び、認識モデルの初回ロード（E5 モデルの JIT コンパイル・言語補正モデルの
     /// 読み込み等）を済ませておく。これを省くと最初の OCR に数十秒かかることがある。
     /// ダミーの文字入り画像を低優先度で1回認識するだけで、結果・失敗は無視する。
-    static func warmUp() {
-        Task.detached(priority: .utility) {
-            guard let data = warmUpImageData() else { return }
-            let start = Date()
-            _ = try? performSync(on: data)
-            log.info("OCR warm-up finished in \(Date().timeIntervalSince(start), format: .fixed(precision: 2))s")
-        }
+    /// 完了まで await できる（呼び出し側が HUD 表示等に使う）。
+    static func warmUp() async {
+        guard let data = warmUpImageData() else { return }
+        let start = Date()
+        _ = try? await Task.detached(priority: .utility) {
+            try performSync(on: data)
+        }.value
+        log.info("OCR warm-up finished in \(Date().timeIntervalSince(start), format: .fixed(precision: 2))s")
     }
 
     /// ウォームアップ用の小さな文字入り画像（PNG）を生成する。
