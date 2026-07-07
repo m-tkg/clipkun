@@ -21,6 +21,8 @@ final class PopupViewModel: ObservableObject {
     var onConfirm: (ClipItem) -> Void = { _ in }
     /// 行の個別削除（ゴミ箱）。
     var onDelete: (ClipItem) -> Void = { _ in }
+    /// 画像行の OCR（画像内テキストをコピー）。
+    var onOCR: (ClipItem) -> Void = { _ in }
     /// 全履歴削除（一覧の右クリックメニュー）。
     var onClearAll: () -> Void = {}
 }
@@ -88,7 +90,8 @@ struct PopupView: View {
                             isSelected: index == viewModel.selectedIndex,
                             thumbnail: viewModel.thumbnailProvider(item),
                             onConfirm: { viewModel.onConfirm(item) },
-                            onDelete: { viewModel.onDelete(item) }
+                            onDelete: { viewModel.onDelete(item) },
+                            onOCR: { viewModel.onOCR(item) }
                         )
                         .id(index)
                     }
@@ -115,8 +118,10 @@ private struct PopupRow: View {
     let thumbnail: NSImage?
     let onConfirm: () -> Void
     let onDelete: () -> Void
+    let onOCR: () -> Void
 
     @State private var isHoveringTrash = false
+    @State private var isHoveringOCR = false
 
     var body: some View {
         HStack(spacing: 8) {
@@ -128,6 +133,16 @@ private struct PopupRow: View {
                 .frame(width: 22, alignment: .trailing)
             icon
                 .frame(width: 32, height: 32)
+            // 画像行のみ: 画像内テキストを OCR してコピーするボタン（解像度表示の左）。
+            if item.kind == .image {
+                Button(action: onOCR) {
+                    Image(systemName: "text.viewfinder")
+                        .foregroundColor(isHoveringOCR ? .accentColor : .secondary)
+                }
+                .buttonStyle(.plain)
+                .onHover { isHoveringOCR = $0 }
+                .help(L.string("popup.ocr"))
+            }
             Text(item.preview)
                 .lineLimit(2)
                 .truncationMode(.tail)

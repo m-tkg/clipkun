@@ -37,6 +37,9 @@
 "popup.search.placeholder" = "Search";
 "popup.no_results" = "No matches";
 "popup.clear_all" = "Clear All History";
+"popup.ocr" = "Copy text from image";
+"ocr.no_text" = "No text was recognized in the image.";
+"ocr.failed" = "Text recognition failed: %@";
 
 /* Update flow */
 "update.latest" = "Clipkun %@ is up to date.";

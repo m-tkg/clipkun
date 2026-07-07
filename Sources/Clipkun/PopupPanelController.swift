@@ -11,6 +11,8 @@ import ClipkunCore
 final class PopupPanelController {
     /// 行を選択確定したときに呼ばれる（書き戻しは AppDelegate が行う）。
     var onSelect: ((ClipItem) -> Void)?
+    /// 画像行の OCR ボタンが押されたときに呼ばれる（認識・コピーは AppDelegate が行う）。
+    var onRecognizeText: ((ClipItem) -> Void)?
 
     private let store: HistoryStore
     private let viewModel = PopupViewModel()
@@ -32,6 +34,7 @@ final class PopupPanelController {
         viewModel.thumbnailProvider = { [weak store] item in store?.thumbnail(for: item) }
         viewModel.onConfirm = { [weak self] item in self?.confirm(item) }
         viewModel.onDelete = { [weak self] item in self?.delete(item) }
+        viewModel.onOCR = { [weak self] item in self?.recognizeText(item) }
         viewModel.onClearAll = { [weak self] in self?.clearAll() }
     }
 
@@ -194,6 +197,12 @@ final class PopupPanelController {
         // （テキストの自動ペースト時、⌘V が前面アプリへ届くようにするため）。
         hide()
         onSelect?(item)
+    }
+
+    /// 画像内テキストの OCR コピー。閉じてから委譲する（confirm と同じ流れ）。
+    private func recognizeText(_ item: ClipItem) {
+        hide()
+        onRecognizeText?(item)
     }
 
     private func delete(_ item: ClipItem) {
