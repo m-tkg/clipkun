@@ -37,6 +37,9 @@
 "popup.search.placeholder" = "検索";
 "popup.no_results" = "該当なし";
 "popup.clear_all" = "履歴をすべて削除";
+"popup.ocr" = "画像内のテキストをコピー";
+"ocr.no_text" = "画像からテキストを認識できませんでした。";
+"ocr.failed" = "テキスト認識に失敗しました: %@";
 
 /* Update flow */
 "update.latest" = "Clipkun %@ は最新です。";

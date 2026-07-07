@@ -60,6 +60,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             }
         }
 
+        // 画像行の OCR ボタン → 画像内テキストを認識してクリップボードへコピー。
+        popup.onRecognizeText = { [weak self] item in
+            self?.recognizeAndCopy(item)
+        }
+
         applySettings(settings)
 
         statusBar = StatusBarController(
@@ -99,6 +104,28 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     private func clearHistory() {
         historyStore.clear()
+    }
+
+    /// 画像履歴の中のテキストを OCR してクリップボードへコピーする。
+    /// 自分の書き込みだが `ignoreCurrentChange()` は呼ばず、監視ポーリングに拾わせて
+    /// OCR 結果をテキスト履歴としても残す。
+    private func recognizeAndCopy(_ item: ClipItem) {
+        guard let data = historyStore.imageData(for: item) else { return }
+        Task { @MainActor in
+            do {
+                let text = try await ImageTextRecognizer.recognize(in: data)
+                guard !text.isEmpty else {
+                    showInfo(L.string("ocr.no_text"))
+                    return
+                }
+                let pasteboard = NSPasteboard.general
+                pasteboard.clearContents()
+                pasteboard.setString(text, forType: .string)
+            } catch {
+                log.error("text recognition failed: \(error.localizedDescription, privacy: .public)")
+                showError(L.format("ocr.failed", error.localizedDescription))
+            }
+        }
     }
 
     /// 期限切れ履歴を定期的に破棄する（ポップアップを開かなくても掃除する）。
