@@ -85,6 +85,19 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         startPruneTimer()
         startUpdateCheck(interactive: false)
         startUpdateTimer()
+
+        // OCR モデルの初回ロードは数十秒かかることがあるため、起動時に温めておく。
+        // 1秒以上かかる場合だけ HUD で準備中を知らせる（速い環境での一瞬の表示を避ける）。
+        let hud = HUDPanelController()
+        Task { @MainActor in
+            let showHUD = Task { @MainActor in
+                guard (try? await Task.sleep(nanoseconds: 1_000_000_000)) != nil else { return }
+                hud.show(text: L.string("hud.ocr_warmup"))
+            }
+            await ImageTextRecognizer.warmUp()
+            showHUD.cancel()
+            hud.hide()
+        }
     }
 
     /// 設定を各所へ反映する。ホットキーは構成が変わったときだけ登録し直す。

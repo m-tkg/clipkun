@@ -1,3 +1,4 @@
+import AppKit
 import Foundation
 import Vision
 import OSLog
@@ -23,6 +24,36 @@ enum ImageTextRecognizer {
                 return try recognizeInHelperProcess(data: data)
             }
         }.value
+    }
+
+    /// 起動時に呼び、認識モデルの初回ロード（E5 モデルの JIT コンパイル・言語補正モデルの
+    /// 読み込み等）を済ませておく。これを省くと最初の OCR に数十秒かかることがある。
+    /// ダミーの文字入り画像を低優先度で1回認識するだけで、結果・失敗は無視する。
+    /// 完了まで await できる（呼び出し側が HUD 表示等に使う）。
+    static func warmUp() async {
+        guard let data = warmUpImageData() else { return }
+        let start = Date()
+        _ = try? await Task.detached(priority: .utility) {
+            try performSync(on: data)
+        }.value
+        log.info("OCR warm-up finished in \(Date().timeIntervalSince(start), format: .fixed(precision: 2))s")
+    }
+
+    /// ウォームアップ用の小さな文字入り画像（PNG）を生成する。
+    /// テキスト検出だけでなく認識・言語補正のモデルまでロードさせるため、実際に文字を描く。
+    private static func warmUpImageData() -> Data? {
+        let size = NSSize(width: 120, height: 40)
+        let image = NSImage(size: size)
+        image.lockFocus()
+        NSColor.white.setFill()
+        NSRect(origin: .zero, size: size).fill()
+        ("OCR" as NSString).draw(
+            at: NSPoint(x: 10, y: 8),
+            withAttributes: [.font: NSFont.systemFont(ofSize: 20), .foregroundColor: NSColor.black])
+        image.unlockFocus()
+        guard let tiff = image.tiffRepresentation,
+              let rep = NSBitmapImageRep(data: tiff) else { return nil }
+        return rep.representation(using: .png, properties: [:])
     }
 
     /// `--ocr <画像パス> <出力パス>` で起動されたときの入口（main.swift から呼ばれる）。
