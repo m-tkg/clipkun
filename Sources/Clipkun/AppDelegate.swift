@@ -1,6 +1,7 @@
 import AppKit
 import OSLog
 import ClipkunCore
+import KunIntegrationBridge
 
 private let log = Logger(subsystem: "com.mtkg.clipkun", category: "app")
 
@@ -74,18 +75,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             quit: { NSApp.terminate(nil) }
         )
 
-        // kuntraykun 連携: 管理対象なら自分のアイコンを隠し、showMenu でメニューを出す。
-        // v4: メニュー構造を共有してサブメニュー表示・項目実行にも応じる。
-        let bridge = KuntraykunBridge(
-            setHidden: { [weak self] hidden in self?.statusBar?.setManagedHidden(hidden) },
-            popUpMenu: { [weak self] point in self?.statusBar?.popUpMenu(at: point) },
-            exportMenu: { [weak self] in self?.statusBar?.exportMenuSnapshot() },
-            performMenuItem: { [weak self] id in self?.statusBar?.performMenuItem(id: id) ?? false }
-        )
+        // kuntraykun 連携（kunkit）: 管理対象なら自分のアイコンを隠し、showMenu でメニューを出す。
+        // v4: メニュー構造を共有してサブメニュー表示・項目実行にも応じる（初回書き出しは start() 内）。
+        let bridge = statusBar!.makeKuntraykunBridge()
         bridge.start()
         kuntraykunBridge = bridge
-        // 起動時に現在のメニュー構造を書き出しておく（kuntraykun 起動済みでもすぐサブメニューが出せる）。
-        statusBar?.exportMenuSnapshot()
+        // メニュー文言の変化（アップデート有無）でスナップショットを書き出し直す。
+        statusBar?.onMenuContentChanged = { [weak self] in
+            self?.kuntraykunBridge?.exportMenuSnapshot()
+        }
 
         startPruneTimer()
         startUpdateCheck(interactive: false)

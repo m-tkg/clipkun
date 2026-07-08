@@ -187,22 +187,16 @@ GitHub Releases から最新版を取得して自己更新する。
   `badgeView?.isHidden` のトグルを置き、起動・定期・手動・復帰の全経路で同期。
 - 注意: kuntraykun 集約でアイコンを隠している間（`setManagedHidden(true)`）はバッジも見えない。
 
-## Kuntraykun 連携（実装済み）
+## Kuntraykun 連携（実装済み・kunkit 利用）
 
-本アプリは kuntraykun（`com.mtkg.kuntraykun`）にメニューバーアイコンを集約させる連携に対応している。
-- 実装: `Sources/Clipkun/KuntraykunBridge.swift`（分散通知の送受信・アイコン表示制御）、
-  `StatusBarController.swift`（`setManagedHidden(_:)` / `popUpMenu(at:)` と `menu` のプロパティ化）、
-  `AppDelegate.swift`（`bridge.start()` の配線）。
+本アプリは kuntraykun（`com.mtkg.kuntraykun`）にメニューバーアイコンを集約させる連携（v1〜v4:
+アイコン集約・実アイコン書き出し・アップデート集約・サブメニュー表示）に対応している。
+- **実装は共有ライブラリ [kunkit](https://github.com/m-tkg/kunkit)**（SPM 依存、`KunIntegrationBridge` プロダクト）。
+  `KuntraykunBridge` / `KuntraykunIconExport` / `KuntraykunMenuExport` を提供し、アプリ側に連携ロジックの複製は持たない。
+- 配線: `StatusBarController.makeKuntraykunBridge()`（`KuntraykunBridge(statusItem:menu:)` の標準配線）を
+  `AppDelegate` が `bridge.start()` する。start() が観測開始・`appLaunched` 送信・初回メニュー書き出しまで行う。
+  アイコン書き出し（v2）は `StatusBarController` init の `KuntraykunIconExport.export(_:)`、
+  アップデート報告（v3）は `kuntraykunBridge?.reportUpdate(_:)`、
+  メニュー文言の変化（v4）は `statusBar.onMenuContentChanged` → `bridge.exportMenuSnapshot()`（表示中は自動保留）。
 - 仕様: kuntraykun リポジトリ `docs/kun-integration-protocol.md`、共通方針は `CLAUDE_base.md`「Kuntraykun 連携」。
-- 管理対象フラグは `UserDefaults`（キー `KuntraykunManaged`）に永続化する。
-- **実アイコンのライブ書き出し（v2）**: `KuntraykunIconExport.export(_:)`（`Sources/Clipkun/KuntraykunIconExport.swift`）で、
-  `StatusBarController` がメニューバーアイコンを設定する箇所で現在アイコンを
-  `~/Library/Application Support/Kuntraykun/MenuBarIcons/<基底ID>.png` に書き出す（テンプレートは `.template` マーカー併記）。
-  kuntraykun はこれを優先して一覧に表示する。
-- **メニュースナップショットの共有（v4: サブメニュー表示）**: `KuntraykunMenuExport`（`Sources/Clipkun/KuntraykunMenuExport.swift`）で
-  自分のメニュー構造を JSON にして `~/Library/Application Support/Kuntraykun/Menus/<基底ID>.json` へ原子的に書き出し、
-  分散通知 `menuSnapshot` で知らせる。kuntraykun はこれをプルダウンの**サブメニュー**として再構築し、
-  項目クリックを `invokeMenuItem` で依頼してくる（`KuntraykunBridge` が観測。**世代トークン一致時のみ**
-  `performActionForItem(at:)` で実行し、不一致なら再書き出しのみ）。書き出しタイミングは
-  起動時／`requestMenu` 受信時／メニュー文言の変化時（`setUpdateAvailable` / `clearUpdateAvailable`）／invoke 実行後。
-  非表示項目は省くが ID（インデックスパス）の採番は実インデックスのまま。
+- 管理対象フラグは kunkit が `UserDefaults`（キー `KuntraykunManaged`）に永続化する。

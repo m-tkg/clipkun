@@ -1,4 +1,5 @@
 import AppKit
+import KunIntegrationBridge
 
 /// メニューバー常駐アイコンとメニューを管理する。
 /// 設定項目自体は設定ダイアログに集約し、メニューは入口だけを提供する。
@@ -15,6 +16,8 @@ final class StatusBarController: NSObject {
     private var updateItem: NSMenuItem!
     /// 新版ありを示す赤バッジ（アイコン右下にオーバーレイ）。
     private var badgeView: NSView?
+    /// メニュー内容（文言・チェック状態）が変わったときの通知。kuntraykun 連携の再書き出しに使う。
+    var onMenuContentChanged: (() -> Void)?
 
     private static var checkUpdateTitle: String { L.string("menu.check_update") }
 
@@ -74,13 +77,13 @@ final class StatusBarController: NSObject {
         updateItem.title = L.format("menu.install_update", tag)
         badgeView?.isHidden = false
         // メニュー文言が変わったので kuntraykun 用スナップショットを書き出し直す（連携 v4）。
-        exportMenuSnapshot()
+        onMenuContentChanged?()
     }
 
     func clearUpdateAvailable() {
         updateItem.title = Self.checkUpdateTitle
         badgeView?.isHidden = true
-        exportMenuSnapshot()
+        onMenuContentChanged?()
     }
 
     /// 赤バッジをアイコン右下へオーバーレイする。位置はアイコン画像の幅基準で固定し、
@@ -103,27 +106,10 @@ final class StatusBarController: NSObject {
 
     // MARK: - kuntraykun 連携
 
-    /// kuntraykun に集約されている間、自分のメニューバーアイコンを隠す/戻す。
-    /// `NSStatusItem` 自体は破棄せず保持し、`popUpMenu(at:)` で使い回す。
-    func setManagedHidden(_ hidden: Bool) {
-        statusItem.isVisible = !hidden
-    }
-
-    /// 自分のステータスメニューを指定スクリーン座標（左下原点）に表示する。
-    /// kuntraykun からの showMenu 依頼で、kuntraykun アイコン直下に出すために使う。
-    func popUpMenu(at point: NSPoint) {
-        menu.popUp(positioning: nil, at: point, in: nil)
-    }
-
-    /// メニュー構造を kuntraykun 用の共有場所へ書き出す（連携 v4）。
-    /// 起動時・requestMenu 受信時・メニュー内容が変わる箇所から呼ぶ。
-    func exportMenuSnapshot() {
-        KuntraykunMenuExport.export(menu)
-    }
-
-    /// kuntraykun のサブメニューでクリックされた項目（インデックスパス ID）を実行する（連携 v4）。
-    func performMenuItem(id: String) -> Bool {
-        KuntraykunMenuExport.performItem(id: id, in: menu)
+    /// kuntraykun 連携ブリッジを標準配線で生成する（アイコンの隠し/popUp/メニュー書き出し/項目実行は
+    /// kunkit 側の既定実装。`NSStatusItem` は破棄せず保持し isVisible で隠す）。
+    func makeKuntraykunBridge() -> KuntraykunBridge {
+        KuntraykunBridge(statusItem: statusItem, menu: menu)
     }
 
     private func menuItem(title: String, action: Selector, key: String) -> NSMenuItem {
