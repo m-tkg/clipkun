@@ -10,7 +10,7 @@ let package = Package(
     ],
     dependencies: [
         // kuntraykun 連携（プロトコル定数・Bridge・アイコン/メニュー書き出し）の共有ライブラリ。
-        .package(url: "https://github.com/m-tkg/kunkit.git", from: "1.0.0")
+        .package(url: "https://github.com/m-tkg/kunkit.git", from: "1.2.0")
     ],
     targets: [
         // 純粋ロジック（テスト対象）: AppKit/Carbon/NSPasteboard に依存しない
