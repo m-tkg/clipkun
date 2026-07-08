@@ -1,0 +1,14 @@
+{
+  "pins" : [
+    {
+      "identity" : "kunkit",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/m-tkg/kunkit.git",
+      "state" : {
+        "revision" : "b13f6fbfcd1a99b37fd49bc50067ae78adabdfa7",
+        "version" : "1.0.0"
+      }
+    }
+  ],
+  "version" : 2
+}
