@@ -1,5 +1,7 @@
 import AppKit
+import KunAppKit
 import KunIntegrationBridge
+import KunSupport
 import KunUpdateKit
 import OSLog
 import ClipkunCore
@@ -10,7 +12,8 @@ private let log = Logger(subsystem: "com.mtkg.clipkun", category: "app")
 /// ステータスバー UI・設定ウィンドウ・アップデートの配線を担う。
 @MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate {
-    private let store = SettingsStore(url: SettingsStore.defaultURL())
+    private let store = KunSettingsStore<Settings>(
+        url: KunSettingsStore<Settings>.defaultURL(appFolderName: "Clipkun"), defaultValue: .default)
 
     private var settings = Settings.default
     private lazy var historyStore = HistoryStore(settings: settings)
@@ -33,7 +36,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     // アップデート関連。
     private let updateService = UpdateService()
-    private lazy var selfUpdater = SelfUpdater(service: updateService)
+    private let selfUpdater = SelfUpdater(appName: "Clipkun")
     private var availableRelease: ReleaseInfo?
 
     func applicationDidFinishLaunching(_ notification: Notification) {

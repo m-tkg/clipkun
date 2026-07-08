@@ -10,7 +10,7 @@ let package = Package(
     ],
     dependencies: [
         // kuntraykun 連携（プロトコル定数・Bridge・アイコン/メニュー書き出し）の共有ライブラリ。
-        .package(url: "https://github.com/m-tkg/kunkit.git", from: "1.2.0")
+        .package(url: "https://github.com/m-tkg/kunkit.git", from: "1.3.0")
     ],
     targets: [
         // 純粋ロジック（テスト対象）: AppKit/Carbon/NSPasteboard に依存しない
@@ -25,6 +25,8 @@ let package = Package(
                 "ClipkunCore",
                 .product(name: "KunIntegrationBridge", package: "kunkit"),
                 .product(name: "KunUpdateKit", package: "kunkit"),
+                .product(name: "KunSupport", package: "kunkit"),
+                .product(name: "KunAppKit", package: "kunkit"),
             ],
             // en.lproj / ja.lproj の Localizable.strings をリソースバンドルに含める。
             resources: [

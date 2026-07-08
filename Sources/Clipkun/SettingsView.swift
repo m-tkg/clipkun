@@ -1,5 +1,6 @@
 import SwiftUI
 import AppKit
+import KunAppKit
 import ClipkunCore
 
 /// 設定ダイアログの編集状態。変更は即時反映する（Apply/OK は持たない）。

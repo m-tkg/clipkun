@@ -1,4 +1,5 @@
 import AppKit
+import KunAppKit
 import SwiftUI
 import ClipkunCore
 
@@ -8,7 +9,8 @@ import ClipkunCore
 final class SettingsWindowController: NSObject, NSWindowDelegate {
     private var window: NSWindow?
     private let viewModel: SettingsViewModel
-    private let loginItem = LoginItemController()
+    private let loginItem = LoginItemController(
+        requiresApprovalMessage: { L.string("login_item.requires_approval") })
 
     init(initialSettings: ClipkunCore.Settings, onChange: @escaping (ClipkunCore.Settings) -> Void) {
         self.viewModel = SettingsViewModel(settings: initialSettings, onChange: onChange)
