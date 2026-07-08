@@ -199,3 +199,10 @@ GitHub Releases から最新版を取得して自己更新する。
   `StatusBarController` がメニューバーアイコンを設定する箇所で現在アイコンを
   `~/Library/Application Support/Kuntraykun/MenuBarIcons/<基底ID>.png` に書き出す（テンプレートは `.template` マーカー併記）。
   kuntraykun はこれを優先して一覧に表示する。
+- **メニュースナップショットの共有（v4: サブメニュー表示）**: `KuntraykunMenuExport`（`Sources/Clipkun/KuntraykunMenuExport.swift`）で
+  自分のメニュー構造を JSON にして `~/Library/Application Support/Kuntraykun/Menus/<基底ID>.json` へ原子的に書き出し、
+  分散通知 `menuSnapshot` で知らせる。kuntraykun はこれをプルダウンの**サブメニュー**として再構築し、
+  項目クリックを `invokeMenuItem` で依頼してくる（`KuntraykunBridge` が観測。**世代トークン一致時のみ**
+  `performActionForItem(at:)` で実行し、不一致なら再書き出しのみ）。書き出しタイミングは
+  起動時／`requestMenu` 受信時／メニュー文言の変化時（`setUpdateAvailable` / `clearUpdateAvailable`）／invoke 実行後。
+  非表示項目は省くが ID（インデックスパス）の採番は実インデックスのまま。

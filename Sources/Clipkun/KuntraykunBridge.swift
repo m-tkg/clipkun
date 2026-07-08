@@ -22,12 +22,18 @@ final class KuntraykunBridge {
     private static let showMenuName = Notification.Name("com.mtkg.kuntraykun.showMenu")
     private static let appLaunchedName = Notification.Name("com.mtkg.kun.appLaunched")
     private static let updateStateName = Notification.Name("com.mtkg.kun.updateState")
+    private static let requestMenuName = Notification.Name("com.mtkg.kuntraykun.requestMenu")
+    private static let invokeMenuItemName = Notification.Name("com.mtkg.kuntraykun.invokeMenuItem")
     private static let managedDefaultsKey = "KuntraykunManaged"
 
     /// 自分のアイコンを隠す/戻すクロージャ（StatusBarController へ委譲）。
     private let setHidden: (Bool) -> Void
     /// 自分のメニューを指定座標に出すクロージャ（StatusBarController へ委譲）。
     private let popUpMenu: (NSPoint) -> Void
+    /// メニュースナップショットを書き出すクロージャ（連携 v4、StatusBarController へ委譲）。
+    private let exportMenu: () -> Void
+    /// サブメニュー項目の実行クロージャ（連携 v4、項目 ID → 実行成否）。
+    private let performMenuItem: (String) -> Bool
 
     /// `.local` を除いた自分の基底 bundle ID。
     private let myBundleID: String
@@ -40,9 +46,14 @@ final class KuntraykunBridge {
     /// `NSWorkspace.runningApplications` の KVO 監視トークン。
     private var runningAppsObservation: NSKeyValueObservation?
 
-    init(setHidden: @escaping (Bool) -> Void, popUpMenu: @escaping (NSPoint) -> Void) {
+    init(setHidden: @escaping (Bool) -> Void,
+         popUpMenu: @escaping (NSPoint) -> Void,
+         exportMenu: @escaping () -> Void,
+         performMenuItem: @escaping (String) -> Bool) {
         self.setHidden = setHidden
         self.popUpMenu = popUpMenu
+        self.exportMenu = exportMenu
+        self.performMenuItem = performMenuItem
         let raw = Bundle.main.bundleIdentifier ?? ""
         self.myBundleID = raw.hasSuffix(".local") ? String(raw.dropLast(".local".count)) : raw
         self.isManaged = UserDefaults.standard.bool(forKey: Self.managedDefaultsKey)
@@ -53,6 +64,8 @@ final class KuntraykunBridge {
         let dnc = DistributedNotificationCenter.default()
         dnc.addObserver(self, selector: #selector(onSync(_:)), name: Self.syncName, object: nil)
         dnc.addObserver(self, selector: #selector(onShowMenu(_:)), name: Self.showMenuName, object: nil)
+        dnc.addObserver(self, selector: #selector(onRequestMenu(_:)), name: Self.requestMenuName, object: nil)
+        dnc.addObserver(self, selector: #selector(onInvokeMenuItem(_:)), name: Self.invokeMenuItemName, object: nil)
 
         // kuntraykun の起動/終了でアイコン表示を再計算する。
         // LSUIElement（メニューバー常駐）アプリの起動/終了は NSWorkspace の didLaunch/didTerminate 通知が
@@ -108,6 +121,33 @@ final class KuntraykunBridge {
               let xs = note.userInfo?["x"] as? String, let x = Double(xs),
               let ys = note.userInfo?["y"] as? String, let y = Double(ys) else { return }
         popUpMenu(NSPoint(x: x, y: y))
+    }
+
+    /// メニュースナップショットの書き出し依頼（連携 v4）。targets に自分が含まれるときだけ応じる。
+    @objc private func onRequestMenu(_ note: Notification) {
+        let targets = (note.userInfo?["targets"] as? String ?? "")
+            .split(separator: ",").map { $0.trimmingCharacters(in: .whitespaces) }
+        guard targets.contains(myBundleID) else { return }
+        exportMenu()
+    }
+
+    /// サブメニュー項目の実行依頼（連携 v4）。世代が現行スナップショットと一致するときだけ実行する。
+    /// 不一致（依頼が古い）なら実行せず、最新のスナップショットを書き出し直して知らせる。
+    @objc private func onInvokeMenuItem(_ note: Notification) {
+        guard note.userInfo?["target"] as? String == myBundleID,
+              let itemID = note.userInfo?["itemID"] as? String else { return }
+        let generation = note.userInfo?["generation"] as? String ?? ""
+        guard generation == KuntraykunMenuExport.currentGeneration else {
+            log.info("invoke ignored (stale generation); re-exporting menu")
+            exportMenu()
+            return
+        }
+        if !performMenuItem(itemID) {
+            log.error("invoke failed: item \(itemID, privacy: .public) not found")
+        }
+        // 実行でメニュー内容（チェック状態や文言）が変わりうるので書き出し直す。
+        // アクションの副作用（ウィンドウ表示等）が済んでから読むため、次のループに逃がす。
+        DispatchQueue.main.async { [exportMenu] in exportMenu() }
     }
 
     /// アイコン表示規則: 隠す = (管理対象) かつ (kuntraykun 起動中)。
