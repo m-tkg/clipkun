@@ -1,7 +1,8 @@
 import AppKit
+import KunIntegrationBridge
+import KunUpdateKit
 import OSLog
 import ClipkunCore
-import KunIntegrationBridge
 
 private let log = Logger(subsystem: "com.mtkg.clipkun", category: "app")
 
@@ -183,12 +184,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     /// 間隔は未認証 GitHub API のレート制限（60回/時）に十分余裕を持って1時間。
     /// `Timer` はスリープ中に発火しないため、`didWakeNotification` で復帰時にも即チェックする。
     private func startUpdateTimer() {
-        let timer = Timer.scheduledTimer(withTimeInterval: 3600, repeats: true) { [weak self] _ in
+        let timer = Timer.scheduledTimer(withTimeInterval: KunUpdateSchedule.checkInterval, repeats: true) { [weak self] _ in
             MainActor.assumeIsolated {
                 self?.startUpdateCheck(interactive: false)
             }
         }
-        timer.tolerance = 360 // 省電力のためコアレッシングを許可（間隔の約10%）。
+        timer.tolerance = KunUpdateSchedule.checkIntervalTolerance // 省電力のためコアレッシングを許可。
         updateCheckTimer = timer
 
         NSWorkspace.shared.notificationCenter.addObserver(

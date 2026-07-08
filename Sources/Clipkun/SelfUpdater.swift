@@ -1,4 +1,5 @@
 import AppKit
+import KunUpdateKit
 import OSLog
 import ClipkunCore
 
