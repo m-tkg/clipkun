@@ -17,14 +17,27 @@ jobs:
       - name: Resolve version
         id: ver
         run: |
-          V=$(/usr/libexec/PlistBuddy -c "Print :CFBundleShortVersionString" Resources/Info.plist 2>/dev/null | tr -d ' ')
-          if [ -z "$V" ]; then
-            echo "CFBundleShortVersionString not found in Resources/Info.plist" >&2
-            exit 1
+          # タグ push はそのタグ名を採用（ベータは v<version>-beta.N のように "-" を含む）。
+          # workflow_dispatch など非タグ実行は Info.plist から stable タグを導出する。
+          if [ "${{ github.ref_type }}" = "tag" ]; then
+            TAG="${{ github.ref_name }}"
+          else
+            V=$(/usr/libexec/PlistBuddy -c "Print :CFBundleShortVersionString" Resources/Info.plist 2>/dev/null | tr -d ' ')
+            if [ -z "$V" ]; then
+              echo "CFBundleShortVersionString not found in Resources/Info.plist" >&2
+              exit 1
+            fi
+            TAG="v$V"
           fi
-          echo "version=$V" >> "$GITHUB_OUTPUT"
-          echo "tag=v$V" >> "$GITHUB_OUTPUT"
-          echo "Resolved version: $V (tag v$V)"
+          # プレリリース識別子（SemVer の "-" 以降）を含むタグは pre-release として公開する。
+          # GitHub の /releases/latest は pre-release を除外するため、通常の更新チェックはベータを無視する。
+          case "$TAG" in
+            *-*) PRERELEASE=true ;;
+            *)   PRERELEASE=false ;;
+          esac
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "prerelease=$PRERELEASE" >> "$GITHUB_OUTPUT"
+          echo "Resolved tag: $TAG (prerelease=$PRERELEASE)"
 
       - name: Check existing release
         id: check
@@ -124,11 +137,16 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
+          FLAGS=""
+          if [ "${{ steps.ver.outputs.prerelease }}" = "true" ]; then
+            FLAGS="--prerelease"
+          fi
           gh release create "${{ steps.ver.outputs.tag }}" \
             --repo "$GITHUB_REPOSITORY" \
             --target "$GITHUB_SHA" \
             --title "${{ steps.ver.outputs.tag }}" \
             --generate-notes \
+            $FLAGS \
             Clipkun.zip
 
       - name: Clean up keychain
