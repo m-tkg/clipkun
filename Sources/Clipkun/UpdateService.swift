@@ -1,4 +1,5 @@
 import Foundation
+import KunUpdateKit
 import OSLog
 import ClipkunCore
 
@@ -81,20 +82,11 @@ struct UpdateService {
     }
 
     /// 最新リリース情報を取得する。
+    /// HTTP 部分は kunkit の ETag 条件付き取得（304 は GitHub のレート制限を消費しない）。
+    /// レート制限時は `GitHubReleaseFetcher.RateLimitedError`（リセット時刻付き文言）が投げられる。
     func fetchLatestRelease() async throws -> ReleaseInfo {
-        let url = URL(string: "\(Self.apiBase)/repos/\(Self.repoFullName)/releases/latest")!
-        var request = URLRequest(url: url)
-        request.setValue("application/vnd.github+json", forHTTPHeaderField: "Accept")
-        request.setValue(Self.userAgent, forHTTPHeaderField: "User-Agent")
-        request.cachePolicy = .reloadIgnoringLocalCacheData
-
-        let (data, response) = try await session.data(for: request)
-        guard let http = response as? HTTPURLResponse else {
-            throw ServiceError.requestFailed(-1)
-        }
-        guard (200..<300).contains(http.statusCode) else {
-            throw ServiceError.requestFailed(http.statusCode)
-        }
+        let fetcher = GitHubReleaseFetcher(repoFullName: Self.repoFullName, userAgent: Self.userAgent)
+        let data = try await fetcher.fetchLatestReleaseData()
         guard let release = try? JSONDecoder().decode(ReleaseInfo.self, from: data) else {
             throw ServiceError.decodeFailed
         }

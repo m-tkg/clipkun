@@ -5,8 +5,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/m-tkg/kunkit.git",
       "state" : {
-        "revision" : "94da2b9cfc0182147abbbaf5678c958f26d90320",
-        "version" : "1.0.1"
+        "revision" : "c6cb0f07924e27dafcfaab3825105925f807b84e",
+        "version" : "1.1.0"
       }
     }
   ],
